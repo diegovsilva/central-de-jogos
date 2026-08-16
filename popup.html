@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <title>Central de Jogos</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <header class="topo">
+    <h1 class="topo__titulo">Central de <span>Jogos</span></h1>
+    <label class="switch" title="Notificar quando o placar mudar">
+      <input type="checkbox" id="toggle-notif" />
+      <span class="switch__trilho"><span class="switch__bolinha"></span></span>
+    </label>
+  </header>
+
+  <main id="conteudo">
+    <p id="status">Carregando…</p>
+    <div id="lista"></div>
+  </main>
+
+  <footer class="rodape">
+    <a id="abrir-site" href="#" target="_blank" rel="noopener noreferrer">Abrir site completo →</a>
+  </footer>
+
+  <script type="module" src="popup.js"></script>
+</body>
+</html>

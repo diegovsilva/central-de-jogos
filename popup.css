@@ -1,0 +1,146 @@
+:root {
+  --bg: #0a0e12;
+  --card: #121820;
+  --line: #232d38;
+  --text: #e7edf3;
+  --text-dim: #8a97a5;
+  --primary: #2fd67a;
+  --accent: #f5a524;
+  --live: #ef4444;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  width: 360px;
+  max-height: 560px;
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+  overflow-y: auto;
+}
+
+.topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--line);
+  position: sticky;
+  top: 0;
+  background: var(--bg);
+  z-index: 1;
+}
+
+.topo__titulo {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+}
+.topo__titulo span { color: var(--primary); }
+
+.switch { display: flex; align-items: center; cursor: pointer; }
+.switch input { display: none; }
+.switch__trilho {
+  width: 34px;
+  height: 20px;
+  border-radius: 999px;
+  background: var(--line);
+  position: relative;
+  transition: background 0.15s ease;
+}
+.switch__bolinha {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--text-dim);
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+.switch input:checked + .switch__trilho { background: rgba(47, 214, 122, 0.25); }
+.switch input:checked + .switch__trilho .switch__bolinha {
+  transform: translateX(14px);
+  background: var(--primary);
+}
+
+#conteudo { padding: 10px 12px 4px; }
+
+#status {
+  text-align: center;
+  color: var(--text-dim);
+  font-size: 13px;
+  padding: 30px 10px;
+}
+
+.grupo { margin-bottom: 14px; }
+
+.grupo__titulo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--text-dim);
+  padding: 0 2px 6px;
+}
+.grupo__titulo img { width: 14px; height: 14px; object-fit: contain; }
+
+.jogo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  text-decoration: none;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+.jogo:hover { border-color: var(--primary); }
+
+.jogo__times { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+
+.jogo__time {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  min-width: 0;
+}
+.jogo__time img { width: 15px; height: 15px; object-fit: contain; flex-shrink: 0; }
+.jogo__time span {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.jogo__time b { font-variant-numeric: tabular-nums; font-size: 12.5px; }
+
+.jogo__status {
+  flex-shrink: 0;
+  font-size: 11px;
+  color: var(--text-dim);
+  min-width: 40px;
+  text-align: right;
+}
+.jogo__status--vivo { color: var(--live); font-weight: 700; }
+
+.rodape {
+  padding: 10px 16px 14px;
+  border-top: 1px solid var(--line);
+  text-align: center;
+}
+.rodape a {
+  color: var(--primary);
+  font-size: 12.5px;
+  text-decoration: none;
+  font-weight: 600;
+}
+.rodape a:hover { opacity: 0.85; }
