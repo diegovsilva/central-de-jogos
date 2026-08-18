@@ -525,34 +525,16 @@ function renderSugestoes(lista, painel, textoDigitado) {
 // bate em Real Madrid E Atlético de Madrid; "Paraná" bate em Paraná Clube
 // E Athletico Paranaense).
 async function buscarTimesPorNome(nomeDigitado) {
-  const nomeBuscado = normalizarTexto(nomeDigitado)
-  const encontrados = new Map() // id -> { id, name, logo }
-
-  for (let i = 0; i <= DIAS_MAX_BUSCA_PROXIMO_JOGO; i++) {
-    const data = new Date()
-    data.setDate(data.getDate() + i)
-    const dataISO = ymd(data)
-
-    try {
-      const res = await fetch(`${API_BASE}/api/fixtures?date=${dataISO}`, { cache: "no-store" })
-      if (!res.ok) continue
-      const json = await res.json()
-
-      for (const fixture of json.fixtures ?? []) {
-        for (const lado of [fixture.home, fixture.away]) {
-          if (!encontrados.has(lado.id) && normalizarTexto(lado.name).includes(nomeBuscado)) {
-            encontrados.set(lado.id, { id: lado.id, name: lado.name, logo: lado.logo })
-          }
-        }
-      }
-    } catch {
-      continue
-    }
-
-    if (encontrados.size >= 8) break // candidatos suficientes pra mostrar
+  try {
+    const res = await fetch(`${API_BASE}/api/teams?search=${encodeURIComponent(nomeDigitado)}`, {
+      cache: "no-store",
+    })
+    if (!res.ok) return []
+    const json = await res.json()
+    return (json.teams ?? []).slice(0, 8)
+  } catch {
+    return []
   }
-
-  return Array.from(encontrados.values())
 }
 
 async function buscarEDefinirPorNome(nomeDigitado) {
@@ -563,7 +545,7 @@ async function buscarEDefinirPorNome(nomeDigitado) {
   const candidatos = await buscarTimesPorNome(nomeDigitado)
 
   if (candidatos.length === 0) {
-    painel.innerHTML = `<p class="meu-time__status">Não achei "${nomeDigitado}" nos próximos ${DIAS_MAX_BUSCA_PROXIMO_JOGO} dias. Confira a grafia ou tente de novo mais tarde.</p>`
+    painel.innerHTML = `<p class="meu-time__status">Não achei nenhum time chamado "${nomeDigitado}". Confira a grafia.</p>`
     return
   }
 
