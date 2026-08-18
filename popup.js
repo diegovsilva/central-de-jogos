@@ -59,7 +59,7 @@ async function buscarTransmissao(fixture) {
   })
 
   try {
-    const res = await fetch(`${API_BASE}/api/videos?${params.toString()}`)
+    const res = await fetch(`${API_BASE}/api/videos?${params.toString()}`, { cache: "no-store" })
     if (!res.ok) return null
     const data = await res.json()
     return data.video || null
@@ -219,7 +219,7 @@ async function carregarJogos() {
   const lista = document.getElementById("lista")
 
   try {
-    const res = await fetch(`${API_BASE}/api/fixtures?date=${todayISO()}`)
+    const res = await fetch(`${API_BASE}/api/fixtures?date=${todayISO()}`, { cache: "no-store" })
     const data = await res.json()
 
     if (!res.ok || data.error) {

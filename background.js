@@ -20,7 +20,7 @@ async function checarPlacares() {
 
     const selecionadosSet = new Set(jogosSelecionados.map(String))
 
-    const res = await fetch(`${API_BASE}/api/fixtures?date=${todayISO()}`)
+    const res = await fetch(`${API_BASE}/api/fixtures?date=${todayISO()}`, { cache: "no-store" })
     if (!res.ok) return
 
     const data = await res.json()
