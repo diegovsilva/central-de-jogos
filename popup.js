@@ -390,9 +390,8 @@ function normalizarTexto(texto) {
 // nome (qualquer time, ex.: "Coritiba") — nesse segundo caso, a mesma
 // varredura já resolve "quem é esse time" (ID e escudo tirados do próprio
 // jogo encontrado) e "qual o próximo jogo dele" de uma vez só.
-async function buscarProximoJogo({ id, nome }) {
-  const idNum = id ? Number(id) : null
-  const nomeBuscado = nome ? normalizarTexto(nome) : null
+async function buscarProximoJogoPorId(id) {
+  const idNum = Number(id)
 
   for (let i = 0; i <= DIAS_MAX_BUSCA_PROXIMO_JOGO; i++) {
     const data = new Date()
@@ -403,24 +402,8 @@ async function buscarProximoJogo({ id, nome }) {
       const res = await fetch(`${API_BASE}/api/fixtures?date=${dataISO}`, { cache: "no-store" })
       if (!res.ok) continue
       const json = await res.json()
-      const fixtures = json.fixtures ?? []
-
-      const jogo = fixtures.find((f) => {
-        if (idNum) return f.home.id === idNum || f.away.id === idNum
-        return normalizarTexto(f.home.name).includes(nomeBuscado) || normalizarTexto(f.away.name).includes(nomeBuscado)
-      })
-
-      if (jogo) {
-        const time = idNum
-          ? jogo.home.id === idNum
-            ? jogo.home
-            : jogo.away
-          : normalizarTexto(jogo.home.name).includes(nomeBuscado)
-            ? jogo.home
-            : jogo.away
-
-        return { jogo, time: { id: time.id, name: time.name, logo: time.logo } }
-      }
+      const jogo = (json.fixtures ?? []).find((f) => f.home.id === idNum || f.away.id === idNum)
+      if (jogo) return jogo
     } catch {
       continue // um dia falhar não impede de continuar procurando nos próximos
     }
@@ -462,10 +445,10 @@ async function atualizarMeuTime() {
   carregando.textContent = "Procurando o próximo jogo…"
   container.appendChild(carregando)
 
-  const resultado = await buscarProximoJogo({ id: timeFavorito.id })
+  const jogo = await buscarProximoJogoPorId(timeFavorito.id)
 
   container.innerHTML = ""
-  if (!resultado) {
+  if (!jogo) {
     const vazio = document.createElement("p")
     vazio.className = "meu-time__status"
     vazio.textContent = `Nenhum jogo encontrado nos próximos ${DIAS_MAX_BUSCA_PROXIMO_JOGO} dias.`
@@ -473,11 +456,11 @@ async function atualizarMeuTime() {
     return
   }
 
-  await ativarNotificacaoAutomatica(resultado.jogo.id)
+  await ativarNotificacaoAutomatica(jogo.id)
 
   const wrapper = document.createElement("div")
   wrapper.className = "meu-time__jogo"
-  wrapper.appendChild(renderCard(resultado.jogo))
+  wrapper.appendChild(renderCard(jogo))
   container.appendChild(wrapper)
 }
 
@@ -536,19 +519,63 @@ function renderSugestoes(lista, painel, textoDigitado) {
   painel.hidden = painel.children.length === 0
 }
 
+// Varre os próximos dias coletando TODOS os times distintos cujo nome bate
+// com o texto buscado (não só o primeiro jogo encontrado) — evita
+// confirmar sozinho um time errado quando a busca é ambígua (ex.: "Madrid"
+// bate em Real Madrid E Atlético de Madrid; "Paraná" bate em Paraná Clube
+// E Athletico Paranaense).
+async function buscarTimesPorNome(nomeDigitado) {
+  const nomeBuscado = normalizarTexto(nomeDigitado)
+  const encontrados = new Map() // id -> { id, name, logo }
+
+  for (let i = 0; i <= DIAS_MAX_BUSCA_PROXIMO_JOGO; i++) {
+    const data = new Date()
+    data.setDate(data.getDate() + i)
+    const dataISO = ymd(data)
+
+    try {
+      const res = await fetch(`${API_BASE}/api/fixtures?date=${dataISO}`, { cache: "no-store" })
+      if (!res.ok) continue
+      const json = await res.json()
+
+      for (const fixture of json.fixtures ?? []) {
+        for (const lado of [fixture.home, fixture.away]) {
+          if (!encontrados.has(lado.id) && normalizarTexto(lado.name).includes(nomeBuscado)) {
+            encontrados.set(lado.id, { id: lado.id, name: lado.name, logo: lado.logo })
+          }
+        }
+      }
+    } catch {
+      continue
+    }
+
+    if (encontrados.size >= 8) break // candidatos suficientes pra mostrar
+  }
+
+  return Array.from(encontrados.values())
+}
+
 async function buscarEDefinirPorNome(nomeDigitado) {
   const painel = document.getElementById("time-favorito-sugestoes")
   painel.innerHTML = '<p class="meu-time__status">Procurando "' + nomeDigitado + '"…</p>'
   painel.hidden = false
 
-  const resultado = await buscarProximoJogo({ nome: nomeDigitado })
+  const candidatos = await buscarTimesPorNome(nomeDigitado)
 
-  if (!resultado) {
+  if (candidatos.length === 0) {
     painel.innerHTML = `<p class="meu-time__status">Não achei "${nomeDigitado}" nos próximos ${DIAS_MAX_BUSCA_PROXIMO_JOGO} dias. Confira a grafia ou tente de novo mais tarde.</p>`
     return
   }
 
-  await definirTimeFavorito(resultado.time)
+  if (candidatos.length === 1) {
+    // só um time bate com o texto — pode confirmar direto
+    await definirTimeFavorito(candidatos[0])
+    return
+  }
+
+  // mais de um time bate (ex.: "Madrid") — mostra pra escolher, não
+  // seleciona sozinho
+  renderSugestoes(candidatos, painel, "")
 }
 
 function iniciarSelecaoTimeFavorito() {
