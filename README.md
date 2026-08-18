@@ -46,6 +46,14 @@ Se o site mudar de domínio, edite `API_BASE` em `config.js` **e** o
 3. Sobe o `.zip`, preenche descrição/screenshots, envia pra revisão
 
 
+## Meu time (favorito)
+
+Escolhe um time na lista no topo do popup (mesma lista de MAIN_TEAMS,
+`lib/main-teams.js`) e a extensão busca o **próximo jogo** dele — hoje se
+tiver, senão procura dia a dia (até 14 dias à frente) até achar. A
+inscrição de notificação e o botão de canal funcionam normalmente nesse
+jogo também, igual aos da lista principal.
+
 ## Apoiar via Pix
 
 O popup tem um botão "☕ Apoiar" que abre um painel com QR Code e código

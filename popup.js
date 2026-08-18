@@ -1,20 +1,30 @@
 import { API_BASE } from "./config.js"
-import { MAIN_TEAM_IDS } from "./lib/main-teams.js"
+import { MAIN_TEAM_IDS, MAIN_TEAMS } from "./lib/main-teams.js"
 import { PIX_KEY, PIX_AMOUNTS, PIX_DEFAULT_AMOUNT, buildPixCode } from "./lib/pix.js"
 
-function todayISO() {
-  const now = new Date()
-  const year = now.getFullYear()
-  const month = String(now.getMonth() + 1).padStart(2, "0")
-  const day = String(now.getDate()).padStart(2, "0")
+function ymd(date) {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, "0")
+  const day = String(date.getDate()).padStart(2, "0")
   return `${year}-${month}-${day}`
+}
+
+function todayISO() {
+  return ymd(new Date())
 }
 
 function tempoLabel(fixture) {
   if (fixture.isLive) return `${fixture.elapsed ?? 0}'`
   if (["FT", "AET", "PEN"].includes(fixture.statusShort)) return "Fim"
+
   const data = new Date(fixture.timestamp * 1000)
-  return data.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
+  const horario = data.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
+
+  if (ymd(data) === todayISO()) return horario
+
+  const diaSemana = data.toLocaleDateString("pt-BR", { weekday: "short" }).replace(".", "")
+  const diaMes = data.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })
+  return `${diaSemana} ${diaMes} · ${horario}`
 }
 
 function envolveTimePrincipal(fixture) {
@@ -359,3 +369,84 @@ function iniciarPainelApoio() {
 }
 
 iniciarPainelApoio()
+
+// ---------- Meu time (favorito) ----------
+
+const DIAS_MAX_BUSCA_PROXIMO_JOGO = 14
+
+async function buscarProximoJogoDoTime(teamId) {
+  const idNum = Number(teamId)
+
+  for (let i = 0; i <= DIAS_MAX_BUSCA_PROXIMO_JOGO; i++) {
+    const data = new Date()
+    data.setDate(data.getDate() + i)
+    const dataISO = ymd(data)
+
+    try {
+      const res = await fetch(`${API_BASE}/api/fixtures?date=${dataISO}`, { cache: "no-store" })
+      if (!res.ok) continue
+      const json = await res.json()
+      const jogo = (json.fixtures ?? []).find((f) => f.home.id === idNum || f.away.id === idNum)
+      if (jogo) return jogo
+    } catch {
+      continue // um dia falhar não impede de continuar procurando nos próximos
+    }
+  }
+
+  return null
+}
+
+async function atualizarMeuTime() {
+  const container = document.getElementById("meu-time-jogo")
+  const { timeFavoritoId } = await chrome.storage.sync.get("timeFavoritoId")
+
+  if (!timeFavoritoId) {
+    container.innerHTML = ""
+    return
+  }
+
+  container.innerHTML = ""
+  const carregando = document.createElement("p")
+  carregando.className = "meu-time__status"
+  carregando.textContent = "Procurando o próximo jogo…"
+  container.appendChild(carregando)
+
+  const jogo = await buscarProximoJogoDoTime(timeFavoritoId)
+
+  container.innerHTML = ""
+  if (!jogo) {
+    const vazio = document.createElement("p")
+    vazio.className = "meu-time__status"
+    vazio.textContent = `Nenhum jogo encontrado nos próximos ${DIAS_MAX_BUSCA_PROXIMO_JOGO} dias.`
+    container.appendChild(vazio)
+    return
+  }
+
+  const wrapper = document.createElement("div")
+  wrapper.className = "meu-time__jogo"
+  wrapper.appendChild(renderCard(jogo))
+  container.appendChild(wrapper)
+}
+
+function iniciarSelecaoTimeFavorito() {
+  const select = document.getElementById("time-favorito-select")
+
+  for (const time of MAIN_TEAMS) {
+    const opcao = document.createElement("option")
+    opcao.value = String(time.id)
+    opcao.textContent = time.name
+    select.appendChild(opcao)
+  }
+
+  chrome.storage.sync.get("timeFavoritoId").then(({ timeFavoritoId }) => {
+    if (timeFavoritoId) select.value = String(timeFavoritoId)
+    atualizarMeuTime()
+  })
+
+  select.addEventListener("change", async () => {
+    await chrome.storage.sync.set({ timeFavoritoId: select.value || null })
+    atualizarMeuTime()
+  })
+}
+
+iniciarSelecaoTimeFavorito()

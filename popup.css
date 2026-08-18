@@ -54,6 +54,57 @@ body::-webkit-scrollbar-track { background: transparent; }
 }
 .topo__titulo span { color: var(--primary); }
 
+/* ---------- Meu time ---------- */
+
+.meu-time {
+  margin: 12px 12px 0;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: var(--card);
+}
+
+.meu-time__cabecalho {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.meu-time__cabecalho label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+.meu-time__cabecalho select {
+  flex: 1;
+  min-width: 0;
+  background: var(--bg-elevated);
+  border: 1px solid var(--line);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  outline: none;
+}
+.meu-time__cabecalho select:focus { border-color: var(--primary); }
+
+#meu-time-jogo {
+  margin-top: 8px;
+}
+#meu-time-jogo:empty { margin-top: 0; }
+
+.meu-time__status {
+  font-size: 11px;
+  color: var(--text-faint);
+  padding: 4px 2px;
+}
+
+.meu-time__jogo .jogo { margin-bottom: 0; border-color: var(--primary); }
+
 .botao-apoiar {
   flex-shrink: 0;
   display: flex;
