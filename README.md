@@ -40,3 +40,16 @@ Se o site mudar de domínio, edite `API_BASE` em `config.js` **e** o
 2. [Chrome Web Store Developer Dashboard](https://chrome.google.com/webstore/devconsole) →
    taxa única de US$5 pra conta de desenvolvedor
 3. Sobe o `.zip`, preenche descrição/screenshots, envia pra revisão
+
+
+## Apoiar via Pix
+
+O popup tem um botão "☕ Apoiar" que abre um painel com QR Code e código
+Pix "copia e cola" — gerado inteiramente no navegador (`lib/pix.js`), sem
+nenhuma chamada de rede (exigência do Manifest V3 pra não rodar código
+remoto).
+
+Pra configurar sua própria chave: edite `PIX_KEY`, `MERCHANT_NAME` e
+`MERCHANT_CITY` em `lib/pix.js`. Nome e cidade precisam ser ASCII
+maiúsculo sem acento (nome até 25 caracteres, cidade até 15). Enquanto
+`PIX_KEY` estiver vazio, o botão "Apoiar" fica escondido automaticamente.

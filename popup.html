@@ -4,11 +4,27 @@
   <meta charset="utf-8" />
   <title>Central de Jogos</title>
   <link rel="stylesheet" href="popup.css" />
+  <script src="vendor/qrcode.js"></script>
 </head>
 <body>
   <header class="topo">
     <h1 class="topo__titulo">Central de <span>Jogos</span></h1>
+    <button id="apoiar-toggle" class="botao-apoiar" type="button" aria-expanded="false" aria-controls="apoiar-painel">
+      ☕ Apoiar
+    </button>
   </header>
+
+  <section id="apoiar-painel" class="apoiar" hidden>
+    <p class="apoiar__texto">Curtindo o app? Ajuda a manter no ar 💚</p>
+
+    <div id="apoiar-valores" class="apoiar__valores" role="radiogroup" aria-label="Valor da doação"></div>
+
+    <div class="apoiar__pix">
+      <div id="apoiar-qr" class="apoiar__qr" aria-hidden="true"></div>
+      <p class="apoiar__legenda">Escaneie com o app do seu banco ou copie o código Pix</p>
+      <button id="apoiar-copiar" class="apoiar__copiar" type="button">Copiar código Pix</button>
+    </div>
+  </section>
 
   <main id="conteudo">
     <p id="status">Carregando…</p>

@@ -1,4 +1,5 @@
 import { API_BASE } from "./config.js"
+import { PIX_KEY, PIX_AMOUNTS, PIX_DEFAULT_AMOUNT, buildPixCode } from "./lib/pix.js"
 
 function todayISO() {
   const now = new Date()
@@ -166,3 +167,84 @@ async function carregarJogos() {
 document.getElementById("abrir-site").href = API_BASE
 
 carregarSelecionados().then(carregarJogos)
+
+// ---------- Painel "Apoiar" (Pix) ----------
+
+function iniciarPainelApoio() {
+  const toggle = document.getElementById("apoiar-toggle")
+  const painel = document.getElementById("apoiar-painel")
+  const valoresEl = document.getElementById("apoiar-valores")
+  const qrEl = document.getElementById("apoiar-qr")
+  const copiarBtn = document.getElementById("apoiar-copiar")
+
+  if (!PIX_KEY) {
+    // sem chave configurada ainda — não expõe o botão em vez de mostrar
+    // um painel quebrado
+    toggle.remove()
+    return
+  }
+
+  let valorAtual = PIX_DEFAULT_AMOUNT
+
+  function renderValores() {
+    valoresEl.innerHTML = ""
+    for (const valor of PIX_AMOUNTS) {
+      const chip = document.createElement("button")
+      chip.type = "button"
+      chip.className = "apoiar__valor"
+      chip.setAttribute("role", "radio")
+      chip.setAttribute("aria-checked", String(valor === valorAtual))
+      chip.textContent = `R$ ${valor}`
+      chip.addEventListener("click", () => {
+        valorAtual = valor
+        renderValores()
+        renderPix()
+      })
+      valoresEl.appendChild(chip)
+    }
+  }
+
+  function renderPix() {
+    const codigo = buildPixCode(valorAtual)
+    copiarBtn.dataset.codigo = codigo
+    copiarBtn.classList.remove("copiado")
+    copiarBtn.textContent = "Copiar código Pix"
+
+    qrEl.textContent = ""
+    if (typeof window.qrcode === "function") {
+      try {
+        const qr = window.qrcode(0, "M")
+        qr.addData(codigo)
+        qr.make()
+        qrEl.innerHTML = qr.createSvgTag({ cellSize: 4, scalable: true })
+      } catch {
+        qrEl.textContent = "Não deu pra gerar o QR Code."
+      }
+    }
+  }
+
+  toggle.addEventListener("click", () => {
+    const aberto = toggle.getAttribute("aria-expanded") === "true"
+    toggle.setAttribute("aria-expanded", String(!aberto))
+    painel.hidden = aberto
+    if (!aberto) renderPix()
+  })
+
+  copiarBtn.addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(copiarBtn.dataset.codigo || "")
+      copiarBtn.classList.add("copiado")
+      copiarBtn.textContent = "Copiado!"
+      setTimeout(() => {
+        copiarBtn.classList.remove("copiado")
+        copiarBtn.textContent = "Copiar código Pix"
+      }, 2000)
+    } catch {
+      // clipboard indisponível (ex.: sem permissão) — sem tratamento especial
+    }
+  })
+
+  renderValores()
+}
+
+iniciarPainelApoio()
