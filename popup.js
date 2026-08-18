@@ -465,8 +465,18 @@ async function atualizarMeuTime() {
 }
 
 function mostrarPerfilTimeFavorito(time) {
-  document.getElementById("meu-time-avatar").src = time.logo
-  document.getElementById("meu-time-nome").textContent = time.name
+  const avatar = document.getElementById("meu-time-avatar")
+  if (time.logo) {
+    avatar.hidden = false
+    avatar.src = time.logo
+    avatar.onerror = () => {
+      avatar.hidden = true
+    }
+  } else {
+    avatar.hidden = true
+  }
+
+  document.getElementById("meu-time-nome").textContent = time.name || "Time sem nome"
   document.getElementById("meu-time-perfil").hidden = false
   document.getElementById("meu-time-busca-wrap").hidden = true
 }
@@ -524,16 +534,70 @@ function renderSugestoes(lista, painel, textoDigitado) {
 // confirmar sozinho um time errado quando a busca é ambígua (ex.: "Madrid"
 // bate em Real Madrid E Atlético de Madrid; "Paraná" bate em Paraná Clube
 // E Athletico Paranaense).
+// Busca em fixtures dos próximos dias — usada só como reforço, caso
+// /api/teams falhe (ex.: cota diária da API-Football estourada). Não acha
+// um time que não tenha jogo marcado logo, mas evita deixar a busca
+// totalmente sem resposta quando a rota principal cai.
+async function buscarTimesPorNomeNosJogos(nomeDigitado) {
+  const nomeBuscado = normalizarTexto(nomeDigitado)
+  const encontrados = new Map()
+
+  for (let i = 0; i <= DIAS_MAX_BUSCA_PROXIMO_JOGO; i++) {
+    const data = new Date()
+    data.setDate(data.getDate() + i)
+    const dataISO = ymd(data)
+
+    try {
+      const res = await fetch(`${API_BASE}/api/fixtures?date=${dataISO}`, { cache: "no-store" })
+      if (!res.ok) continue
+      const json = await res.json()
+
+      for (const fixture of json.fixtures ?? []) {
+        for (const lado of [fixture.home, fixture.away]) {
+          if (!encontrados.has(lado.id) && normalizarTexto(lado.name).includes(nomeBuscado)) {
+            encontrados.set(lado.id, { id: lado.id, name: lado.name, logo: lado.logo })
+          }
+        }
+      }
+    } catch {
+      continue
+    }
+
+    if (encontrados.size >= 8) break
+  }
+
+  return Array.from(encontrados.values())
+}
+
 async function buscarTimesPorNome(nomeDigitado) {
   try {
     const res = await fetch(`${API_BASE}/api/teams?search=${encodeURIComponent(nomeDigitado)}`, {
       cache: "no-store",
     })
-    if (!res.ok) return []
-    const json = await res.json()
-    return (json.teams ?? []).slice(0, 8)
+
+    if (res.ok) {
+      const json = await res.json()
+      const times = (json.teams ?? []).slice(0, 8)
+      if (times.length > 0) return { times, erro: null }
+      // /api/teams respondeu certinho mas não achou nada — ainda tenta o
+      // reforço via jogos, antes de dizer que não existe
+      const viaJogos = await buscarTimesPorNomeNosJogos(nomeDigitado)
+      return { times: viaJogos, erro: null }
+    }
+
+    // rota principal falhou (ex.: cota da API-Football estourada) — tenta
+    // o reforço em vez de simplesmente dizer "não achei"
+    const viaJogos = await buscarTimesPorNomeNosJogos(nomeDigitado)
+    return {
+      times: viaJogos,
+      erro: viaJogos.length === 0 ? "Busca de times temporariamente indisponível. Tente de novo em instantes." : null,
+    }
   } catch {
-    return []
+    const viaJogos = await buscarTimesPorNomeNosJogos(nomeDigitado)
+    return {
+      times: viaJogos,
+      erro: viaJogos.length === 0 ? "Busca de times temporariamente indisponível. Tente de novo em instantes." : null,
+    }
   }
 }
 
@@ -542,7 +606,12 @@ async function buscarEDefinirPorNome(nomeDigitado) {
   painel.innerHTML = '<p class="meu-time__status">Procurando "' + nomeDigitado + '"…</p>'
   painel.hidden = false
 
-  const candidatos = await buscarTimesPorNome(nomeDigitado)
+  const { times: candidatos, erro } = await buscarTimesPorNome(nomeDigitado)
+
+  if (erro) {
+    painel.innerHTML = `<p class="meu-time__status">${erro}</p>`
+    return
+  }
 
   if (candidatos.length === 0) {
     painel.innerHTML = `<p class="meu-time__status">Não achei nenhum time chamado "${nomeDigitado}". Confira a grafia.</p>`
