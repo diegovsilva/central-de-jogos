@@ -1,4 +1,5 @@
 import { API_BASE } from "./config.js"
+import { MAIN_TEAM_IDS } from "./lib/main-teams.js"
 import { PIX_KEY, PIX_AMOUNTS, PIX_DEFAULT_AMOUNT, buildPixCode } from "./lib/pix.js"
 
 function todayISO() {
@@ -14,6 +15,10 @@ function tempoLabel(fixture) {
   if (["FT", "AET", "PEN"].includes(fixture.statusShort)) return "Fim"
   const data = new Date(fixture.timestamp * 1000)
   return data.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
+}
+
+function envolveTimePrincipal(fixture) {
+  return MAIN_TEAM_IDS.has(fixture.home.id) || MAIN_TEAM_IDS.has(fixture.away.id)
 }
 
 let jogosSelecionados = new Set()
@@ -39,6 +44,53 @@ async function alternarSelecao(fixtureId, botao) {
 
   await chrome.storage.sync.set({ jogosSelecionados: Array.from(jogosSelecionados) })
   chrome.runtime.sendMessage({ type: "jogos-selecionados-mudou" })
+}
+
+// Busca em qual canal autorizado o jogo está passando (só pra jogos ao vivo
+// — não faz sentido gastar a busca em jogos que nem começaram).
+async function buscarTransmissao(fixture) {
+  const params = new URLSearchParams({
+    home: fixture.home.name,
+    away: fixture.away.name,
+    league: fixture.league.name,
+    country: fixture.league.country || "",
+    date: todayISO(),
+    event: "live",
+  })
+
+  try {
+    const res = await fetch(`${API_BASE}/api/videos?${params.toString()}`)
+    if (!res.ok) return null
+    const data = await res.json()
+    return data.video || null
+  } catch {
+    return null
+  }
+}
+
+function renderTransmissao(container, video) {
+  container.innerHTML = ""
+  if (!video) return
+
+  const link = document.createElement("a")
+  link.className = "jogo__canal"
+  link.href = video.url
+  link.target = "_blank"
+  link.rel = "noopener noreferrer"
+  link.title = `Assistir no ${video.channelTitle}`
+
+  if (video.channelLogo) {
+    const img = document.createElement("img")
+    img.src = video.channelLogo
+    img.alt = ""
+    link.appendChild(img)
+  }
+
+  const texto = document.createElement("span")
+  texto.textContent = video.channelTitle
+  link.appendChild(texto)
+
+  container.appendChild(link)
 }
 
 function renderCard(fixture) {
@@ -92,7 +144,27 @@ function renderCard(fixture) {
     alternarSelecao(fixture.id, sino)
   })
 
-  card.append(link, sino)
+  const topo = document.createElement("div")
+  topo.className = "jogo__topo"
+  topo.append(link, sino)
+
+  card.appendChild(topo)
+
+  if (fixture.isLive) {
+    const canalBox = document.createElement("div")
+    canalBox.className = "jogo__canal-box"
+    canalBox.textContent = "Buscando transmissão…"
+    card.appendChild(canalBox)
+
+    buscarTransmissao(fixture).then((video) => {
+      if (!video) {
+        canalBox.remove()
+        return
+      }
+      renderTransmissao(canalBox, video)
+    })
+  }
+
   return card
 }
 
@@ -145,20 +217,23 @@ async function carregarJogos() {
       return
     }
 
-    const principais = (data.fixtures ?? [])
-      .filter((f) => f.category === "principais")
+    // só jogos "principais" E que envolvem um time grande — evita poluir o
+    // popup com todos os jogos das ligas principais (ex.: toda rodada do
+    // Brasileirão, mesmo entre times pequenos)
+    const jogos = (data.fixtures ?? [])
+      .filter((f) => f.category === "principais" && envolveTimePrincipal(f))
       .sort((a, b) => {
         if (a.isLive !== b.isLive) return a.isLive ? -1 : 1
         return a.timestamp - b.timestamp
       })
 
-    if (principais.length === 0) {
-      status.textContent = "Nenhum jogo principal hoje."
+    if (jogos.length === 0) {
+      status.textContent = "Nenhum jogo de time principal hoje."
       return
     }
 
     status.remove()
-    renderGrupos(principais, lista)
+    renderGrupos(jogos, lista)
   } catch {
     status.textContent = "Não deu pra carregar os jogos."
   }

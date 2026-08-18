@@ -11,8 +11,12 @@ roda em [central-de-jogos-eight.vercel.app](https://central-de-jogos-eight.verce
 ## Como funciona
 
 - `popup.html` / `popup.js` / `popup.css` — o que aparece ao clicar no ícone:
-  lista os jogos "principais" de hoje (mesma categorização usada no site),
-  agrupados por competição, com placar e link pra abrir o jogo no site.
+  lista os jogos de hoje que envolvem um **time principal** (`lib/main-teams.js`
+  — mesma lista do site, precisa ser mantida sincronizada manualmente já que
+  são repositórios separados), agrupados por competição, com placar e link
+  pra abrir o jogo no site. Pra jogos ao vivo, busca em qual canal
+  autorizado está passando (`/api/videos` do site) e mostra o logo do canal
+  com um botão que abre a transmissão direto.
 - `background.js` — service worker (Manifest V3) que roda em segundo plano:
   a cada 1 minuto (`chrome.alarms`), busca `/api/fixtures` e, **só pros jogos
   que a pessoa marcou no sino do popup** (`chrome.storage.sync`):

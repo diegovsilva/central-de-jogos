@@ -1,25 +1,38 @@
 :root {
   --bg: #0a0e12;
-  --card: #121820;
+  --bg-elevated: #0e1319;
+  --card: #131a22;
+  --card-hover: #171f29;
   --line: #232d38;
-  --text: #e7edf3;
+  --line-soft: #1a2129;
+  --text: #eef2f6;
   --text-dim: #8a97a5;
+  --text-faint: #5c6a78;
   --primary: #2fd67a;
   --accent: #f5a524;
   --live: #ef4444;
+  --radius: 12px;
+  --radius-sm: 8px;
 }
 
 * { box-sizing: border-box; }
 
 body {
-  width: 360px;
-  max-height: 560px;
+  width: 372px;
+  max-height: 580px;
   margin: 0;
   background: var(--bg);
   color: var(--text);
   font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
   overflow-y: auto;
+  -webkit-font-smoothing: antialiased;
 }
+
+body::-webkit-scrollbar { width: 8px; }
+body::-webkit-scrollbar-thumb { background: var(--line); border-radius: 8px; }
+body::-webkit-scrollbar-track { background: transparent; }
+
+/* ---------- Cabeçalho ---------- */
 
 .topo {
   display: flex;
@@ -29,14 +42,14 @@ body {
   border-bottom: 1px solid var(--line);
   position: sticky;
   top: 0;
-  background: var(--bg);
-  z-index: 1;
+  background: var(--bg-elevated);
+  z-index: 2;
 }
 
 .topo__titulo {
   margin: 0;
   font-size: 16px;
-  font-weight: 700;
+  font-weight: 800;
   letter-spacing: 0.2px;
 }
 .topo__titulo span { color: var(--primary); }
@@ -50,25 +63,28 @@ body {
   color: #1a1206;
   border: none;
   border-radius: 999px;
-  padding: 6px 12px;
+  padding: 7px 13px;
   font-size: 12px;
   font-weight: 700;
   cursor: pointer;
-  transition: filter 0.15s ease;
+  transition: filter 0.15s ease, transform 0.1s ease;
 }
 .botao-apoiar:hover { filter: brightness(1.08); }
+.botao-apoiar:active { transform: scale(0.97); }
 .botao-apoiar[aria-expanded="true"] {
-  background: var(--card);
+  background: transparent;
   color: var(--accent);
   border: 1px solid var(--accent);
 }
 
+/* ---------- Painel Apoiar (Pix) ---------- */
+
 .apoiar {
   margin: 10px 12px 0;
-  padding: 12px;
-  border-radius: 12px;
+  padding: 14px;
+  border-radius: var(--radius);
   border: 1px solid var(--accent);
-  background: rgba(245, 165, 36, 0.08);
+  background: linear-gradient(180deg, rgba(245, 165, 36, 0.1), rgba(245, 165, 36, 0.04));
 }
 
 .apoiar__texto {
@@ -78,16 +94,12 @@ body {
   text-align: center;
 }
 
-.apoiar__valores {
-  display: flex;
-  gap: 6px;
-  margin-bottom: 10px;
-}
+.apoiar__valores { display: flex; gap: 6px; margin-bottom: 10px; }
 
 .apoiar__valor {
   flex: 1;
   padding: 7px 0;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--line);
   background: var(--card);
   color: var(--text-dim);
@@ -106,8 +118,8 @@ body {
 .apoiar__pix { display: flex; flex-direction: column; align-items: center; gap: 8px; }
 
 .apoiar__qr {
-  width: 132px;
-  height: 132px;
+  width: 136px;
+  height: 136px;
   padding: 6px;
   background: #fff;
   border-radius: 10px;
@@ -123,8 +135,8 @@ body {
 
 .apoiar__copiar {
   width: 100%;
-  padding: 8px;
-  border-radius: 8px;
+  padding: 9px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--accent);
   background: transparent;
   color: var(--accent);
@@ -136,48 +148,55 @@ body {
 .apoiar__copiar:hover { background: var(--accent); color: #1a1206; }
 .apoiar__copiar.copiado { background: var(--primary); border-color: var(--primary); color: #06201c; }
 
+/* ---------- Lista de jogos ---------- */
+
 #conteudo { padding: 10px 12px 4px; }
 
 #status {
   text-align: center;
   color: var(--text-dim);
   font-size: 13px;
-  padding: 30px 10px;
+  padding: 34px 10px;
 }
 
 .dica {
   text-align: center;
-  color: var(--text-dim);
-  font-size: 11px;
-  margin: 0 0 10px;
+  color: var(--text-faint);
+  font-size: 10.5px;
+  margin: 0 0 12px;
 }
 
-.grupo { margin-bottom: 14px; }
+.grupo { margin-bottom: 16px; }
 
 .grupo__titulo {
   display: flex;
   align-items: center;
   gap: 6px;
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.4px;
+  letter-spacing: 0.5px;
   color: var(--text-dim);
-  padding: 0 2px 6px;
+  padding: 0 2px 7px;
 }
 .grupo__titulo img { width: 14px; height: 14px; object-fit: contain; }
 
 .jogo {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px;
-  border-radius: 10px;
+  border-radius: var(--radius);
   border: 1px solid var(--line);
   background: var(--card);
-  margin-bottom: 6px;
+  margin-bottom: 7px;
+  overflow: hidden;
+  transition: border-color 0.15s ease, background 0.15s ease;
 }
-.jogo:hover { border-color: var(--primary); }
+.jogo:hover { border-color: var(--line-soft); background: var(--card-hover); }
+
+.jogo__topo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 10px;
+}
 
 .jogo__link {
   flex: 1;
@@ -191,19 +210,20 @@ body {
 
 .jogo__sino {
   flex-shrink: 0;
-  width: 26px;
-  height: 26px;
+  width: 27px;
+  height: 27px;
   border-radius: 50%;
   border: 1px solid var(--line);
   background: transparent;
   font-size: 12px;
   line-height: 1;
   cursor: pointer;
-  opacity: 0.45;
+  opacity: 0.4;
   filter: grayscale(1);
-  transition: opacity 0.15s ease, filter 0.15s ease, border-color 0.15s ease;
+  transition: opacity 0.15s ease, filter 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
 }
-.jogo__sino:hover { opacity: 0.8; }
+.jogo__sino:hover { opacity: 0.75; }
+.jogo__sino:active { transform: scale(0.92); }
 .jogo__sino--ativo {
   opacity: 1;
   filter: none;
@@ -216,27 +236,68 @@ body {
 .jogo__time {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
   font-size: 12.5px;
   min-width: 0;
 }
-.jogo__time img { width: 15px; height: 15px; object-fit: contain; flex-shrink: 0; }
+.jogo__time img { width: 16px; height: 16px; object-fit: contain; flex-shrink: 0; }
 .jogo__time span {
   flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-weight: 500;
 }
-.jogo__time b { font-variant-numeric: tabular-nums; font-size: 12.5px; }
+.jogo__time b { font-variant-numeric: tabular-nums; font-size: 12.5px; color: var(--text); }
 
 .jogo__status {
   flex-shrink: 0;
   font-size: 11px;
+  font-weight: 600;
   color: var(--text-dim);
   min-width: 40px;
   text-align: right;
 }
-.jogo__status--vivo { color: var(--live); font-weight: 700; }
+.jogo__status--vivo { color: var(--live); }
+
+/* ---------- Onde assistir (canal) ---------- */
+
+.jogo__canal-box {
+  padding: 0 10px 9px;
+  font-size: 11px;
+  color: var(--text-faint);
+}
+
+.jogo__canal {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--bg-elevated);
+  text-decoration: none;
+  color: var(--text);
+  font-size: 11.5px;
+  font-weight: 600;
+  width: fit-content;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.jogo__canal:hover { border-color: var(--primary); background: rgba(47, 214, 122, 0.08); }
+.jogo__canal img {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+.jogo__canal::before {
+  content: "▶";
+  font-size: 8px;
+  color: var(--primary);
+}
+
+/* ---------- Rodapé ---------- */
 
 .rodape {
   padding: 10px 16px 14px;
