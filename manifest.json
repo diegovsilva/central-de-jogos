@@ -23,5 +23,5 @@
     "type": "module"
   },
   "permissions": ["alarms", "notifications", "storage"],
-  "host_permissions": ["https://central-de-jogos-git-main-vieiradiego18-gmailcoms-projects.vercel.app/*"]
+  "host_permissions": ["https://central-de-jogos-eight.vercel.app/*"]
 }

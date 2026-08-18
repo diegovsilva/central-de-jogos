@@ -5,7 +5,7 @@ popup, com **notificação nativa do Chrome** quando o placar de um jogo ao
 vivo muda, e um **contador no ícone** com quantos jogos estão ao vivo agora.
 
 Não duplica nenhuma lógica de busca de jogos — é um cliente leve da API que já
-roda em [central-de-jogos-git-main-vieiradiego18-gmailcoms-projects.vercel.app](https://central-de-jogos-git-main-vieiradiego18-gmailcoms-projects.vercel.app)
+roda em [central-de-jogos-eight.vercel.app](https://central-de-jogos-eight.vercel.app)
 (rota `/api/fixtures`).
 
 ## Como funciona
