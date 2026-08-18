@@ -276,7 +276,10 @@ async function carregarJogos() {
 
 document.getElementById("abrir-site").href = API_BASE
 
-carregarSelecionados().then(carregarJogos)
+carregarSelecionados().then(() => {
+  carregarJogos()
+  iniciarSelecaoTimeFavorito()
+})
 
 // ---------- Painel "Apoiar" (Pix) ----------
 
@@ -426,6 +429,24 @@ async function buscarProximoJogo({ id, nome }) {
   return null
 }
 
+async function ativarNotificacaoAutomatica(jogoId) {
+  const chave = String(jogoId)
+  const { meuTimeUltimoJogoAutoNotificado } = await chrome.storage.sync.get("meuTimeUltimoJogoAutoNotificado")
+
+  // só força ligado na primeira vez que EsSE jogo específico aparece como
+  // "próximo jogo do meu time" — se o usuário desligar o sino manualmente
+  // depois, reabrir o popup não liga de novo sozinho
+  if (meuTimeUltimoJogoAutoNotificado === chave) return
+
+  if (!jogosSelecionados.has(chave)) {
+    jogosSelecionados.add(chave)
+    await chrome.storage.sync.set({ jogosSelecionados: Array.from(jogosSelecionados) })
+    chrome.runtime.sendMessage({ type: "jogos-selecionados-mudou" })
+  }
+
+  await chrome.storage.sync.set({ meuTimeUltimoJogoAutoNotificado: chave })
+}
+
 async function atualizarMeuTime() {
   const container = document.getElementById("meu-time-jogo")
   const { timeFavorito } = await chrome.storage.sync.get("timeFavorito")
@@ -452,16 +473,33 @@ async function atualizarMeuTime() {
     return
   }
 
+  await ativarNotificacaoAutomatica(resultado.jogo.id)
+
   const wrapper = document.createElement("div")
   wrapper.className = "meu-time__jogo"
   wrapper.appendChild(renderCard(resultado.jogo))
   container.appendChild(wrapper)
 }
 
+function mostrarPerfilTimeFavorito(time) {
+  document.getElementById("meu-time-avatar").src = time.logo
+  document.getElementById("meu-time-nome").textContent = time.name
+  document.getElementById("meu-time-perfil").hidden = false
+  document.getElementById("meu-time-busca-wrap").hidden = true
+}
+
+function mostrarBuscaTimeFavorito() {
+  document.getElementById("meu-time-perfil").hidden = true
+  document.getElementById("meu-time-busca-wrap").hidden = false
+  const input = document.getElementById("time-favorito-busca")
+  input.value = ""
+  input.focus()
+}
+
 async function definirTimeFavorito(time) {
   await chrome.storage.sync.set({ timeFavorito: time })
-  document.getElementById("time-favorito-busca").value = time.name
   document.getElementById("time-favorito-sugestoes").hidden = true
+  mostrarPerfilTimeFavorito(time)
   atualizarMeuTime()
 }
 
@@ -516,11 +554,16 @@ async function buscarEDefinirPorNome(nomeDigitado) {
 function iniciarSelecaoTimeFavorito() {
   const input = document.getElementById("time-favorito-busca")
   const painel = document.getElementById("time-favorito-sugestoes")
+  const trocarBtn = document.getElementById("meu-time-trocar")
 
   chrome.storage.sync.get("timeFavorito").then(({ timeFavorito }) => {
-    if (timeFavorito) input.value = timeFavorito.name
+    if (timeFavorito) {
+      mostrarPerfilTimeFavorito(timeFavorito)
+    }
     atualizarMeuTime()
   })
+
+  trocarBtn.addEventListener("click", mostrarBuscaTimeFavorito)
 
   input.addEventListener("input", () => {
     const texto = input.value
@@ -544,5 +587,3 @@ function iniciarSelecaoTimeFavorito() {
     if (!e.target.closest(".meu-time__busca")) painel.hidden = true
   })
 }
-
-iniciarSelecaoTimeFavorito()

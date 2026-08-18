@@ -77,6 +77,46 @@ body::-webkit-scrollbar-track { background: transparent; }
   color: var(--text-dim);
 }
 
+.meu-time__perfil {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.meu-time__avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--bg-elevated);
+  border: 2px solid var(--primary);
+  flex-shrink: 0;
+}
+
+.meu-time__nome {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 800;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.meu-time__trocar {
+  flex-shrink: 0;
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--text-dim);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 5px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+.meu-time__trocar:hover { border-color: var(--accent); color: var(--text); }
+
 .meu-time__busca { position: relative; margin-top: 6px; }
 
 .meu-time__busca input {

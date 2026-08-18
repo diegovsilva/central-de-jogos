@@ -15,18 +15,27 @@
   </header>
 
   <section class="meu-time">
-    <div class="meu-time__cabecalho">
-      <label for="time-favorito-busca">⭐ Meu time</label>
+    <div id="meu-time-perfil" class="meu-time__perfil" hidden>
+      <img id="meu-time-avatar" class="meu-time__avatar" alt="" />
+      <span id="meu-time-nome" class="meu-time__nome"></span>
+      <button id="meu-time-trocar" type="button" class="meu-time__trocar">Trocar</button>
     </div>
-    <div class="meu-time__busca">
-      <input
-        id="time-favorito-busca"
-        type="text"
-        placeholder="Digite o nome do seu time (ex.: Coritiba)"
-        autocomplete="off"
-      />
-      <div id="time-favorito-sugestoes" class="meu-time__sugestoes" hidden></div>
+
+    <div id="meu-time-busca-wrap">
+      <div class="meu-time__cabecalho">
+        <label for="time-favorito-busca">⭐ Meu time</label>
+      </div>
+      <div class="meu-time__busca">
+        <input
+          id="time-favorito-busca"
+          type="text"
+          placeholder="Digite o nome do seu time (ex.: Coritiba)"
+          autocomplete="off"
+        />
+        <div id="time-favorito-sugestoes" class="meu-time__sugestoes" hidden></div>
+      </div>
     </div>
+
     <div id="meu-time-jogo"></div>
   </section>
 
