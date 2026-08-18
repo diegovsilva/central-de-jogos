@@ -374,8 +374,22 @@ iniciarPainelApoio()
 
 const DIAS_MAX_BUSCA_PROXIMO_JOGO = 14
 
-async function buscarProximoJogoDoTime(teamId) {
-  const idNum = Number(teamId)
+function normalizarTexto(texto) {
+  return texto
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim()
+}
+
+// Busca dia a dia (hoje + próximos DIAS_MAX_BUSCA_PROXIMO_JOGO) até achar
+// um jogo do time. Funciona tanto por ID (times da lista rápida) quanto por
+// nome (qualquer time, ex.: "Coritiba") — nesse segundo caso, a mesma
+// varredura já resolve "quem é esse time" (ID e escudo tirados do próprio
+// jogo encontrado) e "qual o próximo jogo dele" de uma vez só.
+async function buscarProximoJogo({ id, nome }) {
+  const idNum = id ? Number(id) : null
+  const nomeBuscado = nome ? normalizarTexto(nome) : null
 
   for (let i = 0; i <= DIAS_MAX_BUSCA_PROXIMO_JOGO; i++) {
     const data = new Date()
@@ -386,8 +400,24 @@ async function buscarProximoJogoDoTime(teamId) {
       const res = await fetch(`${API_BASE}/api/fixtures?date=${dataISO}`, { cache: "no-store" })
       if (!res.ok) continue
       const json = await res.json()
-      const jogo = (json.fixtures ?? []).find((f) => f.home.id === idNum || f.away.id === idNum)
-      if (jogo) return jogo
+      const fixtures = json.fixtures ?? []
+
+      const jogo = fixtures.find((f) => {
+        if (idNum) return f.home.id === idNum || f.away.id === idNum
+        return normalizarTexto(f.home.name).includes(nomeBuscado) || normalizarTexto(f.away.name).includes(nomeBuscado)
+      })
+
+      if (jogo) {
+        const time = idNum
+          ? jogo.home.id === idNum
+            ? jogo.home
+            : jogo.away
+          : normalizarTexto(jogo.home.name).includes(nomeBuscado)
+            ? jogo.home
+            : jogo.away
+
+        return { jogo, time: { id: time.id, name: time.name, logo: time.logo } }
+      }
     } catch {
       continue // um dia falhar não impede de continuar procurando nos próximos
     }
@@ -398,9 +428,9 @@ async function buscarProximoJogoDoTime(teamId) {
 
 async function atualizarMeuTime() {
   const container = document.getElementById("meu-time-jogo")
-  const { timeFavoritoId } = await chrome.storage.sync.get("timeFavoritoId")
+  const { timeFavorito } = await chrome.storage.sync.get("timeFavorito")
 
-  if (!timeFavoritoId) {
+  if (!timeFavorito) {
     container.innerHTML = ""
     return
   }
@@ -411,10 +441,10 @@ async function atualizarMeuTime() {
   carregando.textContent = "Procurando o próximo jogo…"
   container.appendChild(carregando)
 
-  const jogo = await buscarProximoJogoDoTime(timeFavoritoId)
+  const resultado = await buscarProximoJogo({ id: timeFavorito.id })
 
   container.innerHTML = ""
-  if (!jogo) {
+  if (!resultado) {
     const vazio = document.createElement("p")
     vazio.className = "meu-time__status"
     vazio.textContent = `Nenhum jogo encontrado nos próximos ${DIAS_MAX_BUSCA_PROXIMO_JOGO} dias.`
@@ -424,28 +454,94 @@ async function atualizarMeuTime() {
 
   const wrapper = document.createElement("div")
   wrapper.className = "meu-time__jogo"
-  wrapper.appendChild(renderCard(jogo))
+  wrapper.appendChild(renderCard(resultado.jogo))
   container.appendChild(wrapper)
 }
 
-function iniciarSelecaoTimeFavorito() {
-  const select = document.getElementById("time-favorito-select")
+async function definirTimeFavorito(time) {
+  await chrome.storage.sync.set({ timeFavorito: time })
+  document.getElementById("time-favorito-busca").value = time.name
+  document.getElementById("time-favorito-sugestoes").hidden = true
+  atualizarMeuTime()
+}
 
-  for (const time of MAIN_TEAMS) {
-    const opcao = document.createElement("option")
-    opcao.value = String(time.id)
-    opcao.textContent = time.name
-    select.appendChild(opcao)
+function renderSugestoes(lista, painel, textoDigitado) {
+  painel.innerHTML = ""
+
+  for (const time of lista) {
+    const item = document.createElement("button")
+    item.type = "button"
+    item.className = "meu-time__sugestao"
+
+    const img = document.createElement("img")
+    img.src = time.logo
+    img.alt = ""
+    img.loading = "lazy"
+
+    const nome = document.createElement("span")
+    nome.textContent = time.name
+
+    item.append(img, nome)
+    item.addEventListener("click", () => definirTimeFavorito(time))
+    painel.appendChild(item)
   }
 
-  chrome.storage.sync.get("timeFavoritoId").then(({ timeFavoritoId }) => {
-    if (timeFavoritoId) select.value = String(timeFavoritoId)
+  if (textoDigitado.trim().length >= 3) {
+    const buscar = document.createElement("button")
+    buscar.type = "button"
+    buscar.className = "meu-time__sugestao meu-time__sugestao--buscar"
+    buscar.textContent = `🔍 Buscar "${textoDigitado.trim()}" nos jogos`
+    buscar.addEventListener("click", () => buscarEDefinirPorNome(textoDigitado.trim()))
+    painel.appendChild(buscar)
+  }
+
+  painel.hidden = painel.children.length === 0
+}
+
+async function buscarEDefinirPorNome(nomeDigitado) {
+  const painel = document.getElementById("time-favorito-sugestoes")
+  painel.innerHTML = '<p class="meu-time__status">Procurando "' + nomeDigitado + '"…</p>'
+  painel.hidden = false
+
+  const resultado = await buscarProximoJogo({ nome: nomeDigitado })
+
+  if (!resultado) {
+    painel.innerHTML = `<p class="meu-time__status">Não achei "${nomeDigitado}" nos próximos ${DIAS_MAX_BUSCA_PROXIMO_JOGO} dias. Confira a grafia ou tente de novo mais tarde.</p>`
+    return
+  }
+
+  await definirTimeFavorito(resultado.time)
+}
+
+function iniciarSelecaoTimeFavorito() {
+  const input = document.getElementById("time-favorito-busca")
+  const painel = document.getElementById("time-favorito-sugestoes")
+
+  chrome.storage.sync.get("timeFavorito").then(({ timeFavorito }) => {
+    if (timeFavorito) input.value = timeFavorito.name
     atualizarMeuTime()
   })
 
-  select.addEventListener("change", async () => {
-    await chrome.storage.sync.set({ timeFavoritoId: select.value || null })
-    atualizarMeuTime()
+  input.addEventListener("input", () => {
+    const texto = input.value
+    if (texto.trim().length === 0) {
+      painel.hidden = true
+      return
+    }
+
+    const textoNorm = normalizarTexto(texto)
+    const encontrados = MAIN_TEAMS.filter((t) => normalizarTexto(t.name).includes(textoNorm)).slice(0, 6)
+    renderSugestoes(encontrados, painel, texto)
+  })
+
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && input.value.trim().length >= 3) {
+      buscarEDefinirPorNome(input.value.trim())
+    }
+  })
+
+  document.addEventListener("click", (e) => {
+    if (!e.target.closest(".meu-time__busca")) painel.hidden = true
   })
 }
 

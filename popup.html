@@ -16,10 +16,16 @@
 
   <section class="meu-time">
     <div class="meu-time__cabecalho">
-      <label for="time-favorito-select">⭐ Meu time</label>
-      <select id="time-favorito-select">
-        <option value="">Escolher...</option>
-      </select>
+      <label for="time-favorito-busca">⭐ Meu time</label>
+    </div>
+    <div class="meu-time__busca">
+      <input
+        id="time-favorito-busca"
+        type="text"
+        placeholder="Digite o nome do seu time (ex.: Coritiba)"
+        autocomplete="off"
+      />
+      <div id="time-favorito-sugestoes" class="meu-time__sugestoes" hidden></div>
     </div>
     <div id="meu-time-jogo"></div>
   </section>

@@ -75,22 +75,56 @@ body::-webkit-scrollbar-track { background: transparent; }
   font-size: 12px;
   font-weight: 700;
   color: var(--text-dim);
-  white-space: nowrap;
 }
 
-.meu-time__cabecalho select {
-  flex: 1;
-  min-width: 0;
+.meu-time__busca { position: relative; margin-top: 6px; }
+
+.meu-time__busca input {
+  width: 100%;
   background: var(--bg-elevated);
   border: 1px solid var(--line);
   color: var(--text);
   font-size: 12px;
-  font-weight: 600;
-  padding: 6px 8px;
+  font-weight: 500;
+  padding: 8px 10px;
   border-radius: var(--radius-sm);
   outline: none;
 }
-.meu-time__cabecalho select:focus { border-color: var(--primary); }
+.meu-time__busca input::placeholder { color: var(--text-faint); }
+.meu-time__busca input:focus { border-color: var(--primary); }
+
+.meu-time__sugestoes {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 3;
+  max-height: 180px;
+  overflow-y: auto;
+  background: var(--bg-elevated);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+}
+
+.meu-time__sugestao {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 10px;
+  background: transparent;
+  border: none;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+}
+.meu-time__sugestao:hover,
+.meu-time__sugestao:focus { background: var(--card-hover); }
+.meu-time__sugestao img { width: 18px; height: 18px; object-fit: contain; flex-shrink: 0; }
+.meu-time__sugestao--buscar { color: var(--primary); font-weight: 700; border-top: 1px solid var(--line); }
 
 #meu-time-jogo {
   margin-top: 8px;

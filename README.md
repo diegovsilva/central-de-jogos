@@ -48,11 +48,21 @@ Se o site mudar de domínio, edite `API_BASE` em `config.js` **e** o
 
 ## Meu time (favorito)
 
-Escolhe um time na lista no topo do popup (mesma lista de MAIN_TEAMS,
-`lib/main-teams.js`) e a extensão busca o **próximo jogo** dele — hoje se
-tiver, senão procura dia a dia (até 14 dias à frente) até achar. A
-inscrição de notificação e o botão de canal funcionam normalmente nesse
-jogo também, igual aos da lista principal.
+Campo de busca no topo do popup — digita o nome do time (ex.: "Coritiba")
+e a extensão:
+
+1. Se o nome bater com um time da lista rápida (`lib/main-teams.js`,
+   ~30 clubes grandes), mostra sugestões com escudo clicáveis.
+2. Se não bater com nenhum da lista (ou você clicar em "Buscar nos
+   jogos"), procura de verdade nos jogos reais — hoje e, se não achar,
+   dia a dia (até 14 dias à frente) — até encontrar um jogo com um time
+   cujo nome contenha o texto digitado. Funciona pra **qualquer** time,
+   não só os da lista rápida (escudo e ID vêm direto do jogo encontrado,
+   sem precisar cadastrar o time em lugar nenhum).
+
+Depois de escolhido, mostra o próximo jogo (ou "nenhum jogo encontrado"
+se passar dos 14 dias sem achar), com o mesmo card de jogo (sino de
+notificar, canal de transmissão) usado no resto da lista.
 
 ## Apoiar via Pix
 
