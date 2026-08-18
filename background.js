@@ -1,5 +1,7 @@
 import { API_BASE, POLL_ALARM_NAME, POLL_PERIOD_MINUTES } from "./config.js"
 
+const FINALIZADOS = new Set(["FT", "AET", "PEN"])
+
 function todayISO() {
   const now = new Date()
   const year = now.getFullYear()
@@ -8,47 +10,59 @@ function todayISO() {
   return `${year}-${month}-${day}`
 }
 
-function buildScoreMap(fixtures) {
-  const map = {}
-  for (const f of fixtures) map[String(f.id)] = `${f.home.goals ?? 0}-${f.away.goals ?? 0}`
-  return map
-}
-
 async function checarPlacares() {
   try {
+    const { jogosSelecionados = [] } = await chrome.storage.sync.get("jogosSelecionados")
+    if (jogosSelecionados.length === 0) {
+      await chrome.action.setBadgeText({ text: "" })
+      return
+    }
+
+    const selecionadosSet = new Set(jogosSelecionados.map(String))
+
     const res = await fetch(`${API_BASE}/api/fixtures?date=${todayISO()}`)
     if (!res.ok) return
 
     const data = await res.json()
-    const principais = (data.fixtures ?? []).filter((f) => f.category === "principais")
-    const aoVivo = principais.filter((f) => f.isLive)
+    const fixtures = data.fixtures ?? []
+
+    // só os jogos que a pessoa marcou pra notificar, e que existem hoje
+    const selecionados = fixtures.filter((f) => selecionadosSet.has(String(f.id)))
+    const selecionadosAoVivo = selecionados.filter((f) => f.isLive)
 
     await chrome.action.setBadgeBackgroundColor({ color: "#ef4444" })
-    await chrome.action.setBadgeText({ text: aoVivo.length > 0 ? String(aoVivo.length) : "" })
+    await chrome.action.setBadgeText({ text: selecionadosAoVivo.length > 0 ? String(selecionadosAoVivo.length) : "" })
 
-    const { notificacoesAtivas = true } = await chrome.storage.sync.get("notificacoesAtivas")
-    const novosPlacares = buildScoreMap(aoVivo)
+    const { ultimosPlacares = {} } = await chrome.storage.local.get("ultimosPlacares")
+    const novosPlacares = { ...ultimosPlacares }
 
-    if (notificacoesAtivas) {
-      const { ultimosPlacares = {} } = await chrome.storage.local.get("ultimosPlacares")
+    for (const fixture of selecionadosAoVivo) {
+      const chave = String(fixture.id)
+      const anterior = ultimosPlacares[chave]
+      const atual = `${fixture.home.goals ?? 0}-${fixture.away.goals ?? 0}`
 
-      for (const fixture of aoVivo) {
-        const chave = String(fixture.id)
-        const anterior = ultimosPlacares[chave]
-        const atual = novosPlacares[chave]
-
-        // só notifica quando já tínhamos visto esse jogo antes E o placar mudou
-        // (evita notificar tudo de uma vez quando a extensão liga no meio de vários jogos)
-        if (anterior !== undefined && anterior !== atual) {
-          chrome.notifications.create(`jogo-${chave}`, {
-            type: "basic",
-            iconUrl: "icons/icon-128.png",
-            title: `${fixture.home.name} ${fixture.home.goals ?? 0} x ${fixture.away.goals ?? 0} ${fixture.away.name}`,
-            message: `${fixture.league.name} · ${fixture.elapsed ?? 0}'`,
-            priority: 2,
-          })
-        }
+      // só notifica quando já tínhamos visto esse jogo antes E o placar mudou
+      // (evita notificar tudo de uma vez quando a extensão liga no meio do jogo)
+      if (anterior !== undefined && anterior !== atual) {
+        chrome.notifications.create(`jogo-${chave}`, {
+          type: "basic",
+          iconUrl: "icons/icon-128.png",
+          title: `${fixture.home.name} ${fixture.home.goals ?? 0} x ${fixture.away.goals ?? 0} ${fixture.away.name}`,
+          message: `${fixture.league.name} · ${fixture.elapsed ?? 0}'`,
+          priority: 2,
+        })
       }
+
+      novosPlacares[chave] = atual
+    }
+
+    // limpeza: tira da lista de selecionados os jogos que já terminaram,
+    // pra não ficar acumulando pra sempre
+    const finalizados = selecionados.filter((f) => FINALIZADOS.has(f.statusShort)).map((f) => String(f.id))
+    if (finalizados.length > 0) {
+      const restantes = jogosSelecionados.filter((id) => !finalizados.includes(String(id)))
+      await chrome.storage.sync.set({ jogosSelecionados: restantes })
+      for (const chave of finalizados) delete novosPlacares[chave]
     }
 
     await chrome.storage.local.set({ ultimosPlacares: novosPlacares })
@@ -68,6 +82,14 @@ chrome.runtime.onStartup.addListener(() => {
 
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === POLL_ALARM_NAME) checarPlacares()
+})
+
+// o popup dispara isso assim que a pessoa liga/desliga a notificação de um
+// jogo, pra badge e placar-base atualizarem na hora (sem esperar 1 minuto)
+chrome.runtime.onMessage.addListener((message) => {
+  if (message?.type === "jogos-selecionados-mudou") {
+    checarPlacares()
+  }
 })
 
 chrome.notifications.onClicked.addListener(() => {

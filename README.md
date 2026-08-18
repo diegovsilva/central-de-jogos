@@ -14,10 +14,12 @@ roda em [central-de-jogos-git-main-vieiradiego18-gmailcoms-projects.vercel.app](
   lista os jogos "principais" de hoje (mesma categorização usada no site),
   agrupados por competição, com placar e link pra abrir o jogo no site.
 - `background.js` — service worker (Manifest V3) que roda em segundo plano:
-  a cada 1 minuto (`chrome.alarms`), busca `/api/fixtures` e:
-  - atualiza o número no ícone com a quantidade de jogos "principais" ao vivo
-  - se o placar de um jogo ao vivo mudou desde a última checagem, dispara uma
-    `chrome.notifications` nativa do sistema operacional
+  a cada 1 minuto (`chrome.alarms`), busca `/api/fixtures` e, **só pros jogos
+  que a pessoa marcou no sino do popup** (`chrome.storage.sync`):
+  - atualiza o número no ícone com a quantidade de jogos selecionados ao vivo
+  - se o placar de um jogo selecionado ao vivo mudou desde a última checagem,
+    dispara uma `chrome.notifications` nativa do sistema operacional
+  - remove da lista de selecionados os jogos que já terminaram
 - `config.js` — só a URL base da API, num lugar só, fácil de trocar.
 
 ## Instalar em modo desenvolvedor (antes de publicar na Chrome Web Store)

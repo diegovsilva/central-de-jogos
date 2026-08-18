@@ -15,12 +15,40 @@ function tempoLabel(fixture) {
   return data.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
 }
 
+let jogosSelecionados = new Set()
+
+async function carregarSelecionados() {
+  const { jogosSelecionados: salvos = [] } = await chrome.storage.sync.get("jogosSelecionados")
+  jogosSelecionados = new Set(salvos.map(String))
+}
+
+async function alternarSelecao(fixtureId, botao) {
+  const chave = String(fixtureId)
+  const ligado = jogosSelecionados.has(chave)
+
+  if (ligado) {
+    jogosSelecionados.delete(chave)
+  } else {
+    jogosSelecionados.add(chave)
+  }
+
+  botao.classList.toggle("jogo__sino--ativo", !ligado)
+  botao.setAttribute("aria-pressed", String(!ligado))
+  botao.title = !ligado ? "Notificando esse jogo" : "Notificar esse jogo"
+
+  await chrome.storage.sync.set({ jogosSelecionados: Array.from(jogosSelecionados) })
+  chrome.runtime.sendMessage({ type: "jogos-selecionados-mudou" })
+}
+
 function renderCard(fixture) {
-  const card = document.createElement("a")
+  const card = document.createElement("div")
   card.className = "jogo"
-  card.href = `${API_BASE}/?match=${fixture.id}`
-  card.target = "_blank"
-  card.rel = "noopener noreferrer"
+
+  const link = document.createElement("a")
+  link.className = "jogo__link"
+  link.href = `${API_BASE}/?match=${fixture.id}`
+  link.target = "_blank"
+  link.rel = "noopener noreferrer"
 
   const times = document.createElement("div")
   times.className = "jogo__times"
@@ -48,7 +76,22 @@ function renderCard(fixture) {
   status.className = `jogo__status ${fixture.isLive ? "jogo__status--vivo" : ""}`
   status.textContent = (fixture.isLive ? "● " : "") + tempoLabel(fixture)
 
-  card.append(times, status)
+  link.append(times, status)
+
+  const sino = document.createElement("button")
+  const jaSelecionado = jogosSelecionados.has(String(fixture.id))
+  sino.className = `jogo__sino ${jaSelecionado ? "jogo__sino--ativo" : ""}`
+  sino.type = "button"
+  sino.setAttribute("aria-pressed", String(jaSelecionado))
+  sino.title = jaSelecionado ? "Notificando esse jogo" : "Notificar esse jogo"
+  sino.textContent = "🔔"
+  sino.addEventListener("click", (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    alternarSelecao(fixture.id, sino)
+  })
+
+  card.append(link, sino)
   return card
 }
 
@@ -120,17 +163,6 @@ async function carregarJogos() {
   }
 }
 
-async function iniciarToggleNotificacoes() {
-  const toggle = document.getElementById("toggle-notif")
-  const { notificacoesAtivas = true } = await chrome.storage.sync.get("notificacoesAtivas")
-  toggle.checked = notificacoesAtivas
-
-  toggle.addEventListener("change", () => {
-    chrome.storage.sync.set({ notificacoesAtivas: toggle.checked })
-  })
-}
-
 document.getElementById("abrir-site").href = API_BASE
 
-carregarJogos()
-iniciarToggleNotificacoes()
+carregarSelecionados().then(carregarJogos)
