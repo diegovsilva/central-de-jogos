@@ -153,16 +153,26 @@ function renderCard(fixture) {
   if (fixture.isLive) {
     const canalBox = document.createElement("div")
     canalBox.className = "jogo__canal-box"
-    canalBox.textContent = "Buscando transmissão…"
     card.appendChild(canalBox)
 
-    buscarTransmissao(fixture).then((video) => {
-      if (!video) {
+    if (fixture.__video !== undefined) {
+      // já buscamos antes (jogo sem time grande, incluído por ter
+      // transmissão confirmada) — não busca de novo
+      if (fixture.__video) {
+        renderTransmissao(canalBox, fixture.__video)
+      } else {
         canalBox.remove()
-        return
       }
-      renderTransmissao(canalBox, video)
-    })
+    } else {
+      canalBox.textContent = "Buscando transmissão…"
+      buscarTransmissao(fixture).then((video) => {
+        if (!video) {
+          canalBox.remove()
+          return
+        }
+        renderTransmissao(canalBox, video)
+      })
+    }
   }
 
   return card
@@ -217,18 +227,33 @@ async function carregarJogos() {
       return
     }
 
-    // só jogos "principais" E que envolvem um time grande — evita poluir o
-    // popup com todos os jogos das ligas principais (ex.: toda rodada do
-    // Brasileirão, mesmo entre times pequenos)
-    const jogos = (data.fixtures ?? [])
-      .filter((f) => f.category === "principais" && envolveTimePrincipal(f))
+    const principais = (data.fixtures ?? []).filter((f) => f.category === "principais")
+
+    // regra 1: jogos com time grande sempre entram
+    const comTimeGrande = principais.filter(envolveTimePrincipal)
+
+    // regra 2: jogos ao vivo sem time grande também entram, mas só se
+    // tiverem transmissão confirmada num canal autorizado (senão a lista
+    // fica poluída com jogo pequeno que ninguém vai conseguir assistir)
+    const semTimeGrandeAoVivo = principais.filter((f) => f.isLive && !envolveTimePrincipal(f))
+
+    await Promise.all(
+      semTimeGrandeAoVivo.map(async (f) => {
+        f.__video = await buscarTransmissao(f) // guarda pra não buscar de novo no render do card
+      }),
+    )
+    const comTransmissaoExtra = semTimeGrandeAoVivo.filter((f) => f.__video)
+
+    const jogos = [...comTimeGrande, ...comTransmissaoExtra]
+      // remove duplicata, caso um jogo já esteja nos dois grupos por algum motivo
+      .filter((f, i, arr) => arr.findIndex((x) => x.id === f.id) === i)
       .sort((a, b) => {
         if (a.isLive !== b.isLive) return a.isLive ? -1 : 1
         return a.timestamp - b.timestamp
       })
 
     if (jogos.length === 0) {
-      status.textContent = "Nenhum jogo de time principal hoje."
+      status.textContent = "Nenhum jogo de time principal ou com transmissão agora."
       return
     }
 
@@ -249,6 +274,7 @@ function iniciarPainelApoio() {
   const toggle = document.getElementById("apoiar-toggle")
   const painel = document.getElementById("apoiar-painel")
   const valoresEl = document.getElementById("apoiar-valores")
+  const valorLivreEl = document.getElementById("apoiar-valor-livre")
   const qrEl = document.getElementById("apoiar-qr")
   const copiarBtn = document.getElementById("apoiar-copiar")
 
@@ -272,12 +298,22 @@ function iniciarPainelApoio() {
       chip.textContent = `R$ ${valor}`
       chip.addEventListener("click", () => {
         valorAtual = valor
+        valorLivreEl.value = ""
         renderValores()
         renderPix()
       })
       valoresEl.appendChild(chip)
     }
   }
+
+  valorLivreEl.addEventListener("input", () => {
+    const digitado = Number(valorLivreEl.value)
+    if (digitado > 0) {
+      valorAtual = digitado
+      renderValores() // desmarca os chips, já que agora vale o valor digitado
+      renderPix()
+    }
+  })
 
   function renderPix() {
     const codigo = buildPixCode(valorAtual)

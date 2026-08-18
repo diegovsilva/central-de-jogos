@@ -96,6 +96,35 @@ body::-webkit-scrollbar-track { background: transparent; }
 
 .apoiar__valores { display: flex; gap: 6px; margin-bottom: 10px; }
 
+.apoiar__livre {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 12px;
+  padding: 7px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: var(--card);
+}
+.apoiar__livre span { font-size: 12px; font-weight: 700; color: var(--text-dim); }
+.apoiar__livre input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+  outline: none;
+}
+.apoiar__livre input::placeholder { color: var(--text-faint); font-weight: 400; }
+.apoiar__livre:focus-within { border-color: var(--accent); }
+.apoiar__livre input::-webkit-outer-spin-button,
+.apoiar__livre input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
 .apoiar__valor {
   flex: 1;
   padding: 7px 0;
